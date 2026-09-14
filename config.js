@@ -5,8 +5,8 @@
 */
 
 const SITE_CONFIG = {
-  supabaseUrl: "TODO_SUPABASE_URL",
-  supabaseAnonKey: "TODO_SUPABASE_ANON_KEY",
+  supabaseUrl: "https://cnvulxfsoquifpnqfrng.supabase.co",
+  supabaseAnonKey: "sb_publishable_W2Q5cpJx3kgTWz9fuAaRQQ_UXLo5uEd",
 
   // TODO: add your final venue when confirmed
   locationName: "Location coming soon",
