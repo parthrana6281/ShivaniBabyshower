@@ -6,16 +6,46 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 body{margin:0;background:linear-gradient(135deg,#fff7fa,#f2f6ff);font-family:"DM Sans",sans-serif;color:#504852}.wrap{width:min(1050px,94vw);margin:45px auto}.head{display:flex;justify-content:space-between;align-items:end;gap:20px}.head h1{font:600 3.6rem "Cormorant Garamond",serif;color:#3e587e;margin:0}.muted{color:#7b7380}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:28px 0}.stat{background:#fff;border:1px solid #f0dce2;border-radius:20px;padding:22px;box-shadow:0 12px 30px #6d5d6b0c}.stat b{font-size:2rem;color:#df6685}.card{background:#fff;border-radius:22px;padding:22px;box-shadow:0 15px 35px #6d5d6b12}.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.filters button{border:1px solid #cbd8ec;background:#f7faff;padding:9px 14px;border-radius:12px;cursor:pointer}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:12px;border-bottom:1px solid #eee}.yes{color:#a83d5c;font-weight:700}.no{color:#3e587e;font-weight:700}@media(max-width:650px){.grid{grid-template-columns:1fr}.head{display:block}.head h1{font-size:2.8rem}}
+.reset-card input[type=password],.reset-card input[type=text]{width:100%;padding:11px 12px;border:1px solid #dbe4f3;border-radius:11px;margin-top:6px;margin-bottom:14px;font-family:inherit;font-size:.9rem}
+.reset-card label{font-size:.75rem;font-weight:700;color:#7b7380;text-transform:uppercase;letter-spacing:.04em}
+.reset-row{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:18px}
+.reset-row>div{flex:1;min-width:200px}
+.btn{border:0;border-radius:11px;padding:11px 16px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem}
+.btn-guest{background:#eef3fc;color:#3e587e}
+.btn-danger{background:#df6685;color:#fff}
+.reset-msg{min-height:18px;font-size:.8rem;margin-top:4px}
+.reset-msg.ok{color:#2f8a55}
+.reset-msg.err{color:#c1394f}
+hr.sep{border:0;border-top:1px solid #eee;margin:22px 0}
 </style></head>
 <body><div class="wrap">
 <div class="head"><div><p class="muted">Private host dashboard</p><h1>Baby Shower RSVPs ♡</h1></div><button id="refresh">Refresh</button></div>
 <div class="grid"><div class="stat"><span>Coming</span><br><b id="yes">0</b></div><div class="stat"><span>Not coming</span><br><b id="no">0</b></div><div class="stat"><span>Families responded</span><br><b id="families">0</b></div></div>
 <div class="card"><h2>Family summary</h2><div id="summary">Loading…</div></div><br>
 <div class="card"><h2>Individual responses</h2><table class="table"><thead><tr><th>Family</th><th>Guest</th><th>Response</th><th>Submitted by</th><th>Updated</th></tr></thead><tbody id="rows"></tbody></table></div>
+<br>
+<div class="card reset-card">
+  <h2>Reset RSVPs</h2>
+  <p class="muted" style="margin-top:-6px">Requires your admin reset password (set as the ADMIN_RESET_PASSWORD secret in Supabase). Resetting a guest lets them submit again from scratch.</p>
+  <label>Admin password</label>
+  <input type="password" id="resetPassword" autocomplete="off">
+  <div class="reset-row">
+    <div>
+      <label>Guest name to reset</label>
+      <input type="text" id="resetGuestName" placeholder="e.g. Parth Rana">
+    </div>
+    <button class="btn btn-guest" id="resetGuestBtn">Reset this guest</button>
+  </div>
+  <p id="resetGuestMsg" class="reset-msg"></p>
+  <hr class="sep">
+  <button class="btn btn-danger" id="resetAllBtn">Reset ALL RSVPs</button>
+  <p id="resetAllMsg" class="reset-msg"></p>
+</div>
 <p style="text-align:center;color:#7b7380;font-size:.7rem;margin-top:22px">© 2026 Parth Rana. All rights reserved.</p>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>
 const db=(SITE_CONFIG.supabaseUrl.startsWith("http")&&!SITE_CONFIG.supabaseUrl.includes("TODO"))?supabase.createClient(SITE_CONFIG.supabaseUrl,SITE_CONFIG.supabaseAnonKey):null;
+
 async function load(){
  if(!db){document.getElementById("summary").textContent="Connect Supabase in config.js first.";return}
  const {data,error}=await db.from("rsvps").select("*").order("family_name").order("guest_name");
@@ -28,4 +58,38 @@ async function load(){
  document.getElementById("rows").innerHTML=data.map(x=>`<tr><td>${x.family_name}</td><td>${x.guest_name}</td><td class="${x.response==="yes"?"yes":"no"}">${x.response.toUpperCase()}</td><td>${x.submitted_by||""}</td><td>${new Date(x.updated_at||x.created_at).toLocaleString()}</td></tr>`).join("");
 }
 document.getElementById("refresh").onclick=load;load();
+
+const FUNCTION_URL = SITE_CONFIG.supabaseUrl.replace(".supabase.co","") + ".supabase.co/functions/v1/rsvp-admin-reset";
+
+async function callReset(body, msgEl){
+  msgEl.textContent="Working…";msgEl.className="reset-msg";
+  try{
+    const res=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok){msgEl.textContent=data.error||"Something went wrong.";msgEl.className="reset-msg err";return}
+    msgEl.textContent="Done ✓";msgEl.className="reset-msg ok";
+    load();
+  }catch(err){
+    console.error(err);
+    msgEl.textContent="Network error. Please try again.";msgEl.className="reset-msg err";
+  }
+}
+
+document.getElementById("resetGuestBtn").addEventListener("click",()=>{
+  const password=document.getElementById("resetPassword").value;
+  const guestName=document.getElementById("resetGuestName").value.trim();
+  const msgEl=document.getElementById("resetGuestMsg");
+  if(!password){msgEl.textContent="Enter the admin password first.";msgEl.className="reset-msg err";return}
+  if(!guestName){msgEl.textContent="Enter a guest name to reset.";msgEl.className="reset-msg err";return}
+  callReset({password,scope:"guest",guestName},msgEl);
+});
+
+document.getElementById("resetAllBtn").addEventListener("click",()=>{
+  const password=document.getElementById("resetPassword").value;
+  const msgEl=document.getElementById("resetAllMsg");
+  if(!password){msgEl.textContent="Enter the admin password first.";msgEl.className="reset-msg err";return}
+  if(!confirm("This deletes every RSVP response permanently. Are you sure?")) return;
+  if(!confirm("Really sure? This can't be undone.")) return;
+  callReset({password,scope:"all"},msgEl);
+});
 </script></body></html>
