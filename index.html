@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f8cbd8">
+  <meta name="description" content="Shivani Rana's baby shower invitation">
+  <title>A Little Berry Sweet Baby | Shivani's Baby Shower</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page-bg"></div>
+
+<section id="entry" class="screen entry-screen">
+  <div class="floating f1">♡</div><div class="floating f2">✦</div><div class="floating f3">♡</div>
+  <div class="entry-content">
+    <p class="eyebrow">A special invitation is waiting for you</p>
+    <h1>Open your<br><em>sweet surprise</em></h1>
+    <p class="entry-sub">Please enter your first and last name to open your invitation.</p>
+
+    <div class="envelope-scene">
+      <div class="envelope" id="envelope">
+        <div class="paper">
+          <div class="mini-script">A little</div>
+          <div class="mini-berry">BERRY</div>
+          <div class="mini-script">sweet baby</div>
+        </div>
+        <div class="back"></div>
+        <div class="flap"></div>
+        <div class="front"></div>
+        <div class="seal">♡</div>
+      </div>
+    </div>
+
+    <form id="guestForm" class="guest-form">
+      <div class="names">
+        <label>First name<input id="firstName" autocomplete="given-name" required></label>
+        <label>Last name<input id="lastName" autocomplete="family-name" required></label>
+      </div>
+      <button class="gradient-btn" type="submit">Open My Invitation <span>♡</span></button>
+      <p id="entryMessage" class="message"></p>
+    </form>
+  </div>
+</section>
+
+<section id="invite" class="screen invite-screen hidden">
+  <div class="ribbon">♡ A little one is on the way ♡</div>
+  <article class="card">
+    <span class="flower top-left">✿</span><span class="flower top-right">✿</span>
+    <span class="berry b1">🍓</span><span class="berry b2">🍓</span>
+    <div class="card-inner">
+      <p class="little">A little</p>
+      <h2>Berry</h2>
+      <p class="sweet">sweet baby</p>
+      <p class="way">IS ON THE WAY!</p>
+      <div class="bow"><i></i><b></b><i></i></div>
+
+      <div class="ornament"><span>♡</span><i></i><span>🍓</span><i></i><span>♡</span></div>
+
+      <p class="dear">Dear <strong id="guestDisplay">Friend</strong>,</p>
+      <p class="invite-copy">
+        Please join us for a beautiful celebration honoring <strong>Shivani Rana</strong>
+        as we welcome this precious new chapter with love, laughter and lots of sweet memories.
+      </p>
+
+      <div class="event-grid">
+        <div class="event-box">
+          <span class="event-icon">♡</span><small>WHEN</small>
+          <strong>Sunday, February 7, 2027</strong>
+          <span>2:30 PM – 5:50 PM</span>
+        </div>
+        <div class="event-box">
+          <span class="event-icon">⌖</span><small>WHERE</small>
+          <strong id="locationName">Location coming soon</strong>
+          <span id="locationAddress">Details will be added shortly</span>
+        </div>
+      </div>
+
+      <p class="sweet-note">We would love to celebrate this special day with you. ♡</p>
+
+      <button class="action-btn" id="rsvpOpen">RSVP <span>→</span></button>
+      <a class="registry-btn" id="registryLink" href="#" target="_blank" rel="noopener">Baby Registry · Babylist</a>
+
+      <div class="footer-berries">🍓 &nbsp; ♡ &nbsp; 🍓</div>
+    </div>
+  </article>
+  <button id="changeGuest" class="text-btn">← Open another invitation</button>
+</section>
+
+<div id="rsvpModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card">
+    <button class="close" data-close aria-label="Close">×</button>
+    <p class="little">With love,</p>
+    <h3>Will you join us?</h3>
+    <p class="modal-sub">Please select Yes or No for each person in your invitation.</p>
+    <div id="rsvpPeople" class="people"></div>
+    <button id="submitRsvp" class="gradient-btn">Submit RSVP <span>♡</span></button>
+    <p id="rsvpMessage" class="message"></p>
+  </div>
+</div>
+
+<div id="successModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card success">
+    <div class="success-heart">♡</div>
+    <p class="little">Thank you!</p>
+    <h3 id="successTitle">Your RSVP is received.</h3>
+    <p id="successText">We can't wait to celebrate with you.</p>
+    <button class="gradient-btn" id="closeSuccess">Back to invitation</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
