@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- © 2026 Parth Rana. All rights reserved. -->
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Baby Shower RSVP Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +12,7 @@ body{margin:0;background:linear-gradient(135deg,#fff7fa,#f2f6ff);font-family:"DM
 <div class="grid"><div class="stat"><span>Coming</span><br><b id="yes">0</b></div><div class="stat"><span>Not coming</span><br><b id="no">0</b></div><div class="stat"><span>Families responded</span><br><b id="families">0</b></div></div>
 <div class="card"><h2>Family summary</h2><div id="summary">Loading…</div></div><br>
 <div class="card"><h2>Individual responses</h2><table class="table"><thead><tr><th>Family</th><th>Guest</th><th>Response</th><th>Submitted by</th><th>Updated</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p style="text-align:center;color:#7b7380;font-size:.7rem;margin-top:22px">© 2026 Parth Rana. All rights reserved.</p>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>
 const db=(SITE_CONFIG.supabaseUrl.startsWith("http")&&!SITE_CONFIG.supabaseUrl.includes("TODO"))?supabase.createClient(SITE_CONFIG.supabaseUrl,SITE_CONFIG.supabaseAnonKey):null;
