@@ -2,6 +2,7 @@ let supabaseClient = null;
 let currentFamily = null;
 let currentGuest = null;
 let selections = {};
+let existingResponses = {}; // guest_name -> response, already saved in Supabase
 
 function normalize(v){return v.trim().toLowerCase().replace(/\s+/g," ")}
 function showMessage(id,text){document.getElementById(id).textContent=text}
@@ -37,21 +38,33 @@ document.getElementById("guestForm").addEventListener("submit",e=>{
   openInvitation(family,guest);
 });
 
-function openRsvp(){
-  if(!currentFamily)return;
+async function loadExistingResponses(){
+  existingResponses={};
+  if(!supabaseClient || !currentFamily) return;
+  const {data,error}=await supabaseClient
+    .from("rsvps")
+    .select("guest_name,response")
+    .eq("family_id",currentFamily.id);
+  if(error){console.error(error);return}
+  data.forEach(row=>{existingResponses[row.guest_name]=row.response});
+}
+
+function renderRsvpPeople(){
   selections={};
   const box=document.getElementById("rsvpPeople");
   box.innerHTML="";
   currentFamily.guests.forEach(name=>{
+    const locked=Boolean(existingResponses[name]);
+    if(locked) selections[name]=existingResponses[name];
     const row=document.createElement("div");row.className="person";
-    row.innerHTML=`<div class="person-name">${name}</div>
+    row.innerHTML=`<div class="person-name">${name}${locked?' <span class="locked-tag">Submitted</span>':''}</div>
       <div class="choices">
-        <button type="button" class="choice" data-name="${name}" data-value="yes">YES, I'M COMING</button>
-        <button type="button" class="choice" data-name="${name}" data-value="no">NO, CAN'T MAKE IT</button>
+        <button type="button" class="choice${locked&&existingResponses[name]==="yes"?" selected":""}${locked?" locked":""}" data-name="${name}" data-value="yes" ${locked?"disabled":""}>YES, I'M COMING</button>
+        <button type="button" class="choice${locked&&existingResponses[name]==="no"?" selected":""}${locked?" locked":""}" data-name="${name}" data-value="no" ${locked?"disabled":""}>NO, CAN'T MAKE IT</button>
       </div>`;
     box.appendChild(row);
   });
-  box.querySelectorAll(".choice").forEach(btn=>{
+  box.querySelectorAll(".choice:not(.locked)").forEach(btn=>{
     btn.addEventListener("click",()=>{
       const name=btn.dataset.name;
       selections[name]=btn.dataset.value;
@@ -59,9 +72,26 @@ function openRsvp(){
       btn.classList.add("selected");
     });
   });
-  document.getElementById("rsvpMessage").textContent="";
+
+  const allLocked=currentFamily.guests.every(name=>existingResponses[name]);
+  const submitBtn=document.getElementById("submitRsvp");
+  if(allLocked){
+    submitBtn.classList.add("hidden");
+    showMessage("rsvpMessage","Your RSVP has already been submitted and can't be changed. Contact the host if something needs to be corrected.");
+  }else{
+    submitBtn.classList.remove("hidden");
+    showMessage("rsvpMessage","");
+  }
+}
+
+async function openRsvp(){
+  if(!currentFamily)return;
+  const box=document.getElementById("rsvpPeople");
+  box.innerHTML="<p class=\"message\">Loading…</p>";
   document.getElementById("rsvpModal").classList.remove("hidden");
   document.getElementById("rsvpModal").setAttribute("aria-hidden","false");
+  await loadExistingResponses();
+  renderRsvpPeople();
 }
 
 document.getElementById("rsvpOpen").addEventListener("click",openRsvp);
@@ -71,25 +101,38 @@ document.querySelectorAll("[data-close]").forEach(el=>el.addEventListener("click
 }));
 
 document.getElementById("submitRsvp").addEventListener("click",async()=>{
-  const missing=currentFamily.guests.filter(n=>!selections[n]);
+  const namesToSubmit=currentFamily.guests.filter(n=>!existingResponses[n]);
+  const missing=namesToSubmit.filter(n=>!selections[n]);
   if(missing.length){showMessage("rsvpMessage","Please select YES or NO for everyone listed.");return}
   const btn=document.getElementById("submitRsvp");btn.disabled=true;btn.textContent="Saving RSVP…";
   try{
     if(!supabaseClient) throw new Error("Supabase is not configured yet.");
-    const rows=currentFamily.guests.map(name=>({
+    const rows=namesToSubmit.map(name=>({
       family_id:currentFamily.id,
       family_name:currentFamily.displayName,
       guest_name:name,
       response:selections[name],
       submitted_by:currentGuest
     }));
-    const {error}=await supabaseClient.from("rsvps").upsert(rows,{onConflict:"family_id,guest_name"});
-    if(error)throw error;
-    const yes=currentFamily.guests.filter(n=>selections[n]==="yes");
-    const no=currentFamily.guests.filter(n=>selections[n]==="no");
+    // Plain insert (not upsert) so an already-submitted guest can never be overwritten,
+    // even if someone replays this request directly against the API.
+    const {error}=await supabaseClient.from("rsvps").insert(rows);
+    if(error){
+      if(error.code==="23505"){
+        showMessage("rsvpMessage","Looks like this RSVP was already submitted while this was open elsewhere. Refreshing…");
+        await loadExistingResponses();
+        renderRsvpPeople();
+        return;
+      }
+      throw error;
+    }
+    const combined={...existingResponses};
+    namesToSubmit.forEach(n=>{combined[n]=selections[n]});
+    const yes=currentFamily.guests.filter(n=>combined[n]==="yes");
+    const no=currentFamily.guests.filter(n=>combined[n]==="no");
     document.getElementById("rsvpModal").classList.add("hidden");
     document.getElementById("successTitle").textContent="RSVP received! ♡";
-    document.getElementById("successText").textContent=`${yes.length} coming · ${no.length} not coming. Thank you, ${currentGuest}!`;
+    document.getElementById("successText").textContent=`${yes.length} coming · ${no.length} not coming. Thank you, ${currentGuest}! Your response is now locked in and can't be changed.`;
     document.getElementById("successModal").classList.remove("hidden");
   }catch(err){
     console.error(err);
