@@ -59,7 +59,7 @@ async function load(){
 }
 document.getElementById("refresh").onclick=load;load();
 
-const FUNCTION_URL = SITE_CONFIG.supabaseUrl.replace(".supabase.co","") + ".supabase.co/functions/v1/rsvp-admin-reset";
+const FUNCTION_URL = SITE_CONFIG.supabaseUrl.replace(".supabase.co","") + ".supabase.co/functions/v1/super-handler";
 
 async function callReset(body, msgEl){
   msgEl.textContent="Working…";msgEl.className="reset-msg";
