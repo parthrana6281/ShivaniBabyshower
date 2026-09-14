@@ -19,6 +19,8 @@ function openInvitation(family,guest){
   document.getElementById("locationAddress").textContent=SITE_CONFIG.locationAddress;
   const link=document.getElementById("registryLink");
   if(SITE_CONFIG.babylistUrl){link.href=SITE_CONFIG.babylistUrl;link.style.display="inline-block"}else{link.style.display="none"}
+  const audio=document.getElementById("bgMusic");
+  if(audio){audio.volume=0.55;audio.play().catch(()=>{});}
   document.getElementById("entry").classList.add("opening");
   setTimeout(()=>{
     document.getElementById("entry").classList.add("hidden");
@@ -146,7 +148,17 @@ document.getElementById("changeGuest").addEventListener("click",()=>{
   document.getElementById("entry").classList.remove("hidden","opening");
   document.getElementById("guestForm").reset();
   currentFamily=null;currentGuest=null;
+  const audio=document.getElementById("bgMusic");
+  if(audio){audio.pause();audio.currentTime=0;}
   window.scrollTo({top:0,behavior:"smooth"});
+});
+
+document.getElementById("musicToggle").addEventListener("click",()=>{
+  const audio=document.getElementById("bgMusic");
+  const btn=document.getElementById("musicToggle");
+  if(!audio)return;
+  if(audio.paused){audio.play().catch(()=>{});btn.classList.remove("muted");btn.textContent="♪";}
+  else{audio.pause();btn.classList.add("muted");btn.textContent="✕";}
 });
 
 if(SITE_CONFIG.supabaseUrl.startsWith("http") && !SITE_CONFIG.supabaseUrl.includes("TODO")){
