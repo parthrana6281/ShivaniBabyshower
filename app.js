@@ -7,9 +7,29 @@ let existingResponses = {}; // guest_name -> response, already saved in Supabase
 function normalize(v){return v.trim().toLowerCase().replace(/\s+/g," ")}
 function showMessage(id,text){document.getElementById(id).textContent=text}
 
-function findFamily(first,last){
-  const full=normalize(`${first} ${last}`);
-  return SITE_CONFIG.families.find(f=>f.guests.some(g=>normalize(g)===full));
+async function findFamily(first,last){
+  if(!supabaseClient) return null;
+  const fullName = `${first} ${last}`.trim();
+  const { data: matches, error } = await supabaseClient
+    .from("guests")
+    .select("family_id,family_name,guest_name")
+    .ilike("guest_name", fullName);
+  if(error){ console.error(error); return null; }
+  if(!matches || matches.length===0) return null;
+
+  const familyId = matches[0].family_id;
+  const familyName = matches[0].family_name;
+  const { data: allGuests, error: err2 } = await supabaseClient
+    .from("guests")
+    .select("guest_name")
+    .eq("family_id", familyId);
+  if(err2){ console.error(err2); return null; }
+
+  return {
+    id: familyId,
+    displayName: familyName,
+    guests: allGuests.map(g=>g.guest_name)
+  };
 }
 
 function openInvitation(family,guest){
@@ -29,13 +49,15 @@ function openInvitation(family,guest){
   },1100);
 }
 
-document.getElementById("guestForm").addEventListener("submit",e=>{
+document.getElementById("guestForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const first=document.getElementById("firstName").value.trim();
   const last=document.getElementById("lastName").value.trim();
-  const family=findFamily(first,last);
+  showMessage("entryMessage","Checking…");
+  const family=await findFamily(first,last);
   if(!family){showMessage("entryMessage","We couldn't find that invitation. Please check the spelling or contact the host.");return}
-  const guest=family.guests.find(g=>normalize(g)===normalize(`${first} ${last}`));
+  const fullName=`${first} ${last}`.trim();
+  const guest=family.guests.find(g=>normalize(g)===normalize(fullName));
   showMessage("entryMessage","");
   openInvitation(family,guest);
 });

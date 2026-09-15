@@ -17,15 +17,15 @@ textarea{resize:vertical;min-height:70px}
 .hint{font-size:.75rem;color:var(--muted);margin:-8px 0 14px}
 button{border:0;border-radius:12px;padding:12px 20px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.88rem}
 .btn-add{background:linear-gradient(100deg,var(--pink),var(--blue));color:#fff;width:100%}
-.btn-copy{background:#eef3fc;color:var(--blue-dark)}
 .btn-remove{background:none;border:1px solid #f0c8d3;color:var(--pink-dark);padding:5px 10px;font-size:.72rem;border-radius:8px}
 .family-row{display:flex;justify-content:space-between;align-items:start;gap:10px;padding:13px 0;border-bottom:1px solid #f1eef2}
 .family-row:last-child{border-bottom:0}
 .family-name{font-weight:700;color:var(--blue-dark)}
 .family-guests{color:var(--muted);font-size:.85rem;margin-top:2px}
 .empty{color:var(--muted);font-size:.85rem;text-align:center;padding:10px 0}
-pre{background:#fbf6f4;border:1px solid #f1e4e8;border-radius:14px;padding:16px;font-size:.78rem;line-height:1.55;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
-.copied{color:#2f8a55;font-size:.8rem;margin-left:10px}
+.status-msg{min-height:18px;font-size:.82rem;margin-top:6px}
+.status-msg.ok{color:#2f8a55}
+.status-msg.err{color:#c1394f}
 #lockScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff7fa,#f2f6ff);z-index:100}
 .lock-card{width:min(380px,90vw);background:#fff;border-radius:22px;padding:32px 26px;box-shadow:0 20px 50px #6d5d6b1f;text-align:center}
 .lock-card h2{font:600 2rem "Cormorant Garamond",serif;color:var(--blue-dark);margin:0 0 6px}
@@ -49,7 +49,7 @@ pre{background:#fbf6f4;border:1px solid #f1e4e8;border-radius:14px;padding:16px;
 
 <div id="builder"><div class="wrap">
   <h1>Guest List Builder ♡</h1>
-  <p class="sub">Add each family below, then copy the generated code straight into <code>config.js</code>.</p>
+  <p class="sub">Add a family and it saves straight to the live invitation — no file editing needed.</p>
 
   <div class="card">
     <label for="familyName">Family display name</label>
@@ -57,129 +57,111 @@ pre{background:#fbf6f4;border:1px solid #f1e4e8;border-radius:14px;padding:16px;
     <label for="guestNames">Guest names</label>
     <textarea id="guestNames" placeholder="One name per line, e.g.&#10;Raj Patel&#10;Priya Patel"></textarea>
     <p class="hint">Each guest can enter the invitation using their own name — no shared login needed.</p>
-    <button class="btn-add" id="addFamily">Add family</button>
+    <button class="btn-add" id="addFamily">Add to guest list</button>
+    <p id="addMsg" class="status-msg"></p>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0">Families added</h3>
-    <div id="familyList"><p class="empty">No families added yet.</p></div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0">Paste this into config.js</h3>
-    <p class="hint">Replace everything between <code>families: [</code> and the matching <code>]</code> with this.</p>
-    <pre id="output">[]</pre>
-    <button class="btn-copy" id="copyBtn">Copy code</button>
-    <span class="copied" id="copiedMsg" style="display:none">Copied ✓</span>
+    <h3 style="margin-top:0">Current guest list</h3>
+    <div id="familyList"><p class="empty">Loading…</p></div>
   </div>
 </div></div>
 
 <script src="config.js"></script>
 <script>
 const FUNCTION_URL = SITE_CONFIG.supabaseUrl.replace(".supabase.co","") + ".supabase.co/functions/v1/super-handler";
+let adminPassword = null;
 
-document.getElementById("lockSubmit").addEventListener("click",async()=>{
+async function callFn(payload){
+  const res = await fetch(FUNCTION_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || "Something went wrong.");
+  return data;
+}
+
+document.getElementById("lockSubmit").addEventListener("click", async()=>{
   const password = document.getElementById("lockPassword").value;
   const msgEl = document.getElementById("lockMsg");
   if(!password){ msgEl.textContent = "Enter the password."; return; }
   msgEl.textContent = "Checking…";
   try{
-    const res = await fetch(FUNCTION_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password, scope: "verify" })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok || !data.ok){
-      msgEl.textContent = data.error || "Incorrect password.";
-      return;
-    }
+    await callFn({ password, scope: "verify" });
+    adminPassword = password;
     document.getElementById("lockScreen").style.display = "none";
     document.getElementById("builder").style.display = "block";
+    loadGuestList();
   }catch(err){
-    console.error(err);
-    msgEl.textContent = "Network error. Please try again.";
+    msgEl.textContent = err.message;
   }
 });
 document.getElementById("lockPassword").addEventListener("keydown", e=>{
   if(e.key === "Enter") document.getElementById("lockSubmit").click();
 });
 
-let families = [];
-
-function slugify(name){
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "family";
-}
-
-function uniqueId(base){
-  let id = base, n = 2;
-  while(families.some(f=>f.id===id)){ id = `${base}-${n}`; n++; }
-  return id;
-}
-
-function render(){
+async function loadGuestList(){
   const listEl = document.getElementById("familyList");
-  if(families.length === 0){
-    listEl.innerHTML = '<p class="empty">No families added yet.</p>';
-  } else {
-    listEl.innerHTML = families.map((f,i)=>`
+  listEl.innerHTML = '<p class="empty">Loading…</p>';
+  try{
+    const data = await callFn({ password: adminPassword, scope: "listGuests" });
+    const families = {};
+    data.guests.forEach(g=>{
+      (families[g.family_id] ??= { name: g.family_name, guests: [] }).guests.push(g.guest_name);
+    });
+    const entries = Object.entries(families);
+    if(entries.length === 0){
+      listEl.innerHTML = '<p class="empty">No families added yet.</p>';
+      return;
+    }
+    listEl.innerHTML = entries.map(([familyId,f])=>`
       <div class="family-row">
         <div>
-          <div class="family-name">${f.displayName}</div>
+          <div class="family-name">${f.name}</div>
           <div class="family-guests">${f.guests.join(", ")}</div>
         </div>
-        <button class="btn-remove" data-index="${i}">Remove</button>
+        <button class="btn-remove" data-id="${familyId}">Remove</button>
       </div>
     `).join("");
     listEl.querySelectorAll(".btn-remove").forEach(btn=>{
-      btn.addEventListener("click",()=>{
-        families.splice(Number(btn.dataset.index),1);
-        render();
+      btn.addEventListener("click", async()=>{
+        if(!confirm(`Remove this whole family from the guest list?`)) return;
+        try{
+          await callFn({ password: adminPassword, scope: "removeFamily", familyId: btn.dataset.id });
+          loadGuestList();
+        }catch(err){
+          alert(err.message);
+        }
       });
     });
+  }catch(err){
+    listEl.innerHTML = `<p class="empty">${err.message}</p>`;
   }
-
-  const code = families.map(f=>
-`    {
-      id: "${f.id}",
-      displayName: "${f.displayName}",
-      guests: [${f.guests.map(g=>`"${g}"`).join(", ")}]
-    }`
-  ).join(",\n");
-
-  document.getElementById("output").textContent = families.length
-    ? `[\n${code}\n  ]`
-    : "[]";
 }
 
-document.getElementById("addFamily").addEventListener("click",()=>{
+document.getElementById("addFamily").addEventListener("click", async()=>{
   const nameInput = document.getElementById("familyName");
   const guestsInput = document.getElementById("guestNames");
+  const msgEl = document.getElementById("addMsg");
   const displayName = nameInput.value.trim();
   const guests = guestsInput.value.split("\n").map(g=>g.trim()).filter(Boolean);
 
   if(!displayName){ nameInput.focus(); return; }
   if(guests.length === 0){ guestsInput.focus(); return; }
 
-  families.push({ id: uniqueId(slugify(displayName)), displayName, guests });
-  nameInput.value = "";
-  guestsInput.value = "";
-  nameInput.focus();
-  render();
-});
-
-document.getElementById("copyBtn").addEventListener("click",async()=>{
-  const text = document.getElementById("output").textContent;
+  msgEl.textContent = "Saving…"; msgEl.className = "status-msg";
   try{
-    await navigator.clipboard.writeText(text);
-    const msg = document.getElementById("copiedMsg");
-    msg.style.display = "inline";
-    setTimeout(()=>{ msg.style.display = "none"; }, 1800);
+    await callFn({ password: adminPassword, scope: "addFamily", displayName, guests });
+    msgEl.textContent = "Added ✓"; msgEl.className = "status-msg ok";
+    nameInput.value = "";
+    guestsInput.value = "";
+    nameInput.focus();
+    loadGuestList();
   }catch(err){
-    console.error(err);
+    msgEl.textContent = err.message; msgEl.className = "status-msg err";
   }
 });
-
-render();
 </script>
 </body></html>
