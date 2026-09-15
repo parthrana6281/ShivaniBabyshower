@@ -12,8 +12,7 @@ const SITE_CONFIG = {
   locationName: "Location coming soon",
   locationAddress: "Details will be added shortly",
 
-  // TODO: paste your Babylist registry URL when ready
-  babylistUrl: "",
+  babylistUrl: "https://www.babylist.com/list/baby-registry-shivani-rana",
 
   // No longer used -- the guest list now lives in Supabase and is
   // managed through guest-list-builder.html. Left empty on purpose.
