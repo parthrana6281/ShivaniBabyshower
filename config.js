@@ -15,18 +15,7 @@ const SITE_CONFIG = {
   // TODO: paste your Babylist registry URL when ready
   babylistUrl: "",
 
-  // RSVP families. Add/edit families as your guest list grows.
-  families: [
-    {
-      id: "parth-rana",
-      displayName: "Parth Rana Family",
-      guests: ["Parth Rana", "Shivani Rana", "Bruno"]
-    }
-    {
-      id: "chirag-rana-family",
-      displayName: "Chirag Rana Family",
-      guests: ["Chirag Rana", "Chandni Kinkhabwala", "Aarav Rana", "Ishani Rana"]
-    }
-  
-  ]
+  // No longer used -- the guest list now lives in Supabase and is
+  // managed through guest-list-builder.html. Left empty on purpose.
+  families: []
 };
