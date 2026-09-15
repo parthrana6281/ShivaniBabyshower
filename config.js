@@ -22,5 +22,11 @@ const SITE_CONFIG = {
       displayName: "Parth Rana Family",
       guests: ["Parth Rana", "Shivani Rana", "Bruno"]
     }
+    {
+      id: "chirag-rana-family",
+      displayName: "Chirag Rana Family",
+      guests: ["Chirag Rana", "Chandni Kinkhabwala", "Aarav Rana", "Ishani Rana"]
+    }
+  
   ]
 };
