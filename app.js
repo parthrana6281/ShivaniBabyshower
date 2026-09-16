@@ -34,7 +34,7 @@ async function findFamily(first,last){
 
 function openInvitation(family,guest){
   currentFamily=family; currentGuest=guest;
-  document.getElementById("guestDisplay").textContent=family.displayName;
+  document.getElementById("guestDisplay").textContent=family.displayName.trim().replace(/\s*family$/i,"");
   document.getElementById("locationName").textContent=SITE_CONFIG.locationName;
   document.getElementById("locationAddress").textContent=SITE_CONFIG.locationAddress;
   const link=document.getElementById("registryLink");
