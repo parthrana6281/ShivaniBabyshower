@@ -8,9 +8,8 @@ const SITE_CONFIG = {
   supabaseUrl: "https://cnvulxfsoquifpnqfrng.supabase.co",
   supabaseAnonKey: "sb_publishable_W2Q5cpJx3kgTWz9fuAaRQQ_UXLo5uEd",
 
-  // TODO: add your final venue when confirmed
-  locationName: "Location coming soon",
-  locationAddress: "Details will be added shortly",
+  locationName: "Royal Albert Palace (Neel Kamal Hall)",
+  locationAddress: "1050 King Georges Post Rd, Fords, NJ 08863",
 
   babylistUrl: "https://www.babylist.com/list/baby-registry-shivani-rana",
 
